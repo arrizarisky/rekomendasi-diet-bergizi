@@ -16,11 +16,12 @@
                     Data Diri
                 </div>
                 <div class="card-body">
-                    <p><strong>Umur:</strong> {{ $umur }} tahun</p>
-                    <p><strong>Gender:</strong> {{ $gender == 'male' ? 'Laki-laki' : 'Perempuan' }}</p>
-                    <p><strong>Berat Badan:</strong> {{ $berat }} kg</p>
-                    <p><strong>Tinggi Badan:</strong> {{ $tinggi }} cm</p>
-                    <p><strong>BMI:</strong> {{ $bmi }}</p>
+                    <p><strong>Nama:</strong> {{ $diagnosisResult['nama'] }}</p>
+                    <p><strong>Umur:</strong> {{ $diagnosisResult['usia'] }} tahun</p>
+                    <p><strong>Gender:</strong> {{ $diagnosisResult['gender'] == 'male' ? 'Laki-laki' : 'Perempuan' }}</p>
+                    <p><strong>Berat Badan:</strong> {{ $diagnosisResult['berat'] }} kg</p>
+                    <p><strong>Tinggi Badan:</strong> {{ $diagnosisResult['tinggi'] }} cm</p>
+                    <p><strong>BMI:</strong> {{ $diagnosisResult['bmi'] }}</p>
                 </div>
             </div>
         </div>
@@ -31,7 +32,8 @@
                     Diagnosis
                 </div>
                 <div class="card-body">
-                    <h4 class="text-danger"><strong>{{ $diagnosa }}</strong></h4>
+                    <h4 class="text-danger"><strong>{{ $diagnosisResult['diagnosis'] }}</strong></h4>
+                    <p>{{ $diagnosisResult['kategori_bmi'] }}</p>
                 </div>
             </div>
         </div>
@@ -42,22 +44,50 @@
             💡 Rekomendasi
         </div>
         <div class="card-body">
-            <div style="white-space: pre-line;">{!! nl2br(e($rekomendasi)) !!}</div>
+            <ul>
+                @foreach ($diagnosisResult['rekomendasi_diet'] as $item)
+                    <li>{{ $item }}</li>
+                @endforeach
+            </ul>
         </div>
     </div>
 
+    @if($diagnosisResult['fiber_recommendation'])
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-warning">
             🌿 Kebutuhan Serat
         </div>
         <div class="card-body">
-            <p>{{ $serat }}</p>
+            <p>{{ $diagnosisResult['fiber_recommendation'] }}</p>
+        </div>
+    </div>
+    @endif
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            🔍 Alasan Diagnosis
+        </div>
+        <div class="card-body">
+            <p>
+                Pasien memenuhi kriteria kategori <strong>{{ $diagnosisResult['diagnosis'] }}</strong> karena:
+            </p>
+            <ul>
+                <li>BMI = {{ $diagnosisResult['bmi'] }} termasuk kategori <strong>{{ $diagnosisResult['diagnosis'] }}</strong></li>
+                <li>Rule yang terpenuhi: <strong>{{ $diagnosisResult['rule_id'] ?? '-' }}</strong></li>
+                <li>Kombinasi gejala dalam rule {{ $diagnosisResult['rule_id'] ?? '' }}:</li>
+                <ul>
+                    @foreach($diagnosisResult['rule_gejala_deskripsi'] as $g)
+                        <li>{{ $g }}</li>
+                    @endforeach
+                </ul>
+            </ul>
         </div>
     </div>
 
+
     <div class="text-center">
         <a href="{{ route('form') }}" class="btn btn-outline-primary">
-            🔄 Cek lagi
+            🔄 Cek Lagi
         </a>
     </div>
 </div>

@@ -5,7 +5,11 @@
         <h1 class="mb-4 text-center">⭐ Sehatku sehatmu ⭐</h1>
         <form action="{{ route('diagnosis') }}" method="POST">
             @csrf
-
+            
+            <div class="form-floating mb-3">
+                <input type="text" name="nama" id="umur" class="form-control" placeholder="Masukkan nama Anda" required>
+                <label for="umur">Nama</label>
+            </div>
             <div class="form-floating mb-3">
                 <input type="number" name="umur" id="umur" class="form-control" placeholder="Masukkan umur Anda" required>
                 <label for="umur">Age</label>

@@ -4,8 +4,12 @@ namespace App\Helpers;
 
 class DiagnosisHelper
 {
-    public static function calculateBMI($berat, $tinggi)
+   public static function calculateBMI($berat, $tinggi)
     {
+        if (!$tinggi || $tinggi <= 0) {
+            return 0; // atau bisa juga throw Exception jika ingin lebih ketat
+        }
+
         $tinggiMeter = $tinggi / 100;
         return round($berat / ($tinggiMeter * $tinggiMeter), 1);
     }
@@ -108,33 +112,173 @@ class DiagnosisHelper
     ];
 }
 
+    private static function countMatch($rule, $gejala)
+    {
+        return count(array_intersect($rule, $gejala));
+    }
+
+
     public static function ruleBase($gejala, $bmi)
     {
-        // Check berdasarkan kombinasi rules
-        $kodeGejala = $gejala;
+            $kodeGejala = $gejala;
 
-        if ($bmi < 18.5) {
-            if (self::match(['G01', 'G04', 'G06','G28'], $kodeGejala)) return 'Underweight';
-            if (self::match(['G08', 'G13', 'G15', 'G31'], $kodeGejala)) return 'Underweight';
-            if (self::match(['G17', 'G21', 'G22'], $kodeGejala)) return 'Underweight';
-            return 'Underweight';
-        } elseif ($bmi >= 18.5 && $bmi <= 24.9) {
-            if (self::match(['G04', 'G07','G09','G13'], $kodeGejala)) return 'Normal';
-            if (self::match(['G16', 'G19','G21','G24'], $kodeGejala)) return 'Normal';
-            if (self::match(['G28', 'G33', 'G01'], $kodeGejala)) return 'Normal';
-            return 'Normal';
-        } elseif ($bmi >= 25 && $bmi <= 29.9) {
-            if (self::match(['G02', 'G04', 'G06', 'G09'], $kodeGejala)) return 'Overweight';
-            if (self::match(['G13', 'G16', 'G19', 'G21'], $kodeGejala)) return 'Overweight';
-            if (self::match(['G25', 'G28', 'G30'], $kodeGejala)) return 'Overweight';
-            return 'Overweight';
-        } else { // BMI > 30
-            if (self::match(['G02', 'G03', 'G05', 'G10', 'G13'], $kodeGejala)) return 'Obesity';
-            if (self::match(['G15', 'G18', 'G21', 'G26'], $kodeGejala)) return 'Obesity';
-            if (self::match(['G28', 'G30'], $kodeGejala)) return 'Obesity';
+            // Rule untuk masing-masing kategori
+            $ruleUnderweight = [
+                ['G01', 'G04', 'G06', 'G28'],
+                ['G08', 'G13', 'G15', 'G31'],
+                ['G17', 'G21', 'G22']
+            ];
+
+            $ruleNormal = [
+                ['G04', 'G07', 'G09', 'G13'],
+                ['G16', 'G19', 'G21', 'G24'],
+                ['G28', 'G33', 'G01']
+            ];
+
+            $ruleOverweight = [
+                ['G02', 'G04', 'G06', 'G09'],
+                ['G13', 'G16', 'G19', 'G21'],
+                ['G25', 'G28', 'G30']
+            ];
+
+            $ruleObesity = [
+                ['G02', 'G03', 'G05', 'G10', 'G13'],
+                ['G15', 'G18', 'G21', 'G26'],
+                ['G28', 'G30']
+            ];
+
+            // Minimum jumlah gejala cocok dalam rule agar dianggap valid
+            $minMatch = 2;
+
+            // Evaluasi berdasarkan BMI dan cocokkan gejala
+            if ($bmi < 18.5) {
+                foreach ($ruleUnderweight as $rule) {
+                    if (self::countMatch($rule, $kodeGejala) >= $minMatch) {
+                        return 'Underweight';
+                    }
+                }
+            } elseif ($bmi >= 18.5 && $bmi <= 24.9) {
+                foreach ($ruleNormal as $rule) {
+                    if (self::countMatch($rule, $kodeGejala) >= $minMatch) {
+                        return 'Normal';
+                    }
+                }
+            } elseif ($bmi >= 25 && $bmi <= 29.9) {
+                foreach ($ruleOverweight as $rule) {
+                    if (self::countMatch($rule, $kodeGejala) >= $minMatch) {
+                        return 'Overweight';
+                    }
+                }
+            } else {
+                foreach ($ruleObesity as $rule) {
+                    if (self::countMatch($rule, $kodeGejala) >= $minMatch) {
+                        return 'Obesity';
+                    }
+                }
+            }
+
+            // Jika BMI masuk tapi tidak ada rule cocok, fallback ke kategori BMI
+            if ($bmi < 18.5) return 'Underweight';
+            if ($bmi <= 24.9) return 'Normal';
+            if ($bmi <= 29.9) return 'Overweight';
             return 'Obesity';
-        }
     }
+
+
+   public static function diagnose($request)
+    {
+        $nama = $request->input('nama');
+        $usia = $request->input('umur');
+        $gender = $request->input('gender');
+        $berat = $request->input('berat');
+        $tinggi = $request->input('tinggi');
+        $gejalaDipilih = $request->input('gejala', []);
+
+        // Hitung BMI
+        $bmi = self::calculateBMI($berat, $tinggi);
+
+        // Tentukan diagnosis berdasarkan input user
+        $diagnosa = self::ruleBase($gejalaDipilih, $bmi);
+
+        // Dapatkan rekomendasi diet dan serat
+        $rekomendasi = self::dietRecommendation($diagnosa);
+        $serat = self::fiberTable($usia, strtolower($gender), $diagnosa);
+
+        // Daftar rule untuk pembuktian logika
+        $rules = [
+            'R01' => [
+                ['G01', 'G04', 'G06', 'G28'],
+                ['G08', 'G13', 'G15', 'G31'],
+                ['G17', 'G21', 'G22'],
+            ],
+            'R02' => [
+                ['G04', 'G07', 'G09', 'G13'],
+                ['G16', 'G19', 'G21', 'G24'],
+                ['G28', 'G33', 'G01'],
+            ],
+            'R03' => [
+                ['G02', 'G04', 'G06', 'G09'],
+                ['G13', 'G16', 'G19', 'G21'],
+                ['G25', 'G28', 'G30'],
+            ],
+            'R04' => [
+                ['G02', 'G03', 'G05', 'G10', 'G13'],
+                ['G15', 'G18', 'G21', 'G26'],
+                ['G28', 'G30'],
+            ],
+        ];
+
+
+        // Cari rule yang diagnosis-nya cocok dan jumlah kecocokan gejala terbanyak
+        $rule_id = null;
+        $rule_gejala = [];
+        $maxMatch = 2;
+
+       foreach ($rules as $kode => $listKombinasi) {
+            foreach ($listKombinasi as $syarat) {
+                $matchedGejala = array_intersect($syarat, $gejalaDipilih);
+                $matchCount = count($matchedGejala);
+                $expectedDiagnosis = self::ruleBase($syarat, $bmi);
+
+                if ($expectedDiagnosis === $diagnosa && $matchCount > $maxMatch) {
+                    $rule_id = $kode;
+                    $rule_gejala = $syarat;
+                    $maxMatch = $matchCount;
+                }
+            }
+        }
+
+
+        $daftarGejalaDeskriptif = [];
+
+        foreach ($rule_gejala as $kodeGejala) {
+            foreach (self::gejalaPertanyaan() as $parent => $obj) {
+                if (isset($obj['opsi'][$kodeGejala])) {
+                    $daftarGejalaDeskriptif[] = $kodeGejala . ' (' . $obj['opsi'][$kodeGejala] . ')';
+                }
+            }
+        }
+
+
+        return [
+            'nama' => $nama,
+            'usia' => $usia,
+            'gender' => $gender,
+            'berat' => $berat,
+            'tinggi' => $tinggi,
+            'bmi' => $bmi,
+            'kategori_bmi' => $diagnosa,
+            'diagnosis' => $diagnosa,
+            'rekomendasi_diet' => explode("\n", $rekomendasi),
+            'fiber_recommendation' => $serat,
+            'gejala_dipilih' => $gejalaDipilih,
+            'rule_id' => $rule_id,
+            'rule_gejala' => $rule_gejala,
+            'rule_gejala_deskripsi' => $daftarGejalaDeskriptif,
+        ];
+    }
+
+
 
     private static function match($rule, $gejala)
     {
