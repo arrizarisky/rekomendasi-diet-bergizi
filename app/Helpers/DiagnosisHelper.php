@@ -232,7 +232,7 @@ class DiagnosisHelper
         // Cari rule yang diagnosis-nya cocok dan jumlah kecocokan gejala terbanyak
         $rule_id = null;
         $rule_gejala = [];
-        $maxMatch = 2;
+        $maxMatch = 0;
 
        foreach ($rules as $kode => $listKombinasi) {
             foreach ($listKombinasi as $syarat) {
@@ -240,7 +240,8 @@ class DiagnosisHelper
                 $matchCount = count($matchedGejala);
                 $expectedDiagnosis = self::ruleBase($syarat, $bmi);
 
-                if ($expectedDiagnosis === $diagnosa && $matchCount > $maxMatch) {
+                $minMatch = 2;
+                if ($expectedDiagnosis === $diagnosa && $matchCount >= $minMatch && $matchCount > $maxMatch) {
                     $rule_id = $kode;
                     $rule_gejala = $syarat;
                     $maxMatch = $matchCount;
